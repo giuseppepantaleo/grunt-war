@@ -32,7 +32,17 @@ module.exports = function (grunt) {
             webxml_webapp_xmlns_xsi: 'http://www.w3.org/2001/XMLSchema-instance',
             webxml_webapp_xsi_schema_location: 'http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd',
             webxml_mime_mapping: [],
-            webxml_webapp_extras: []
+            webxml_webapp_extras: [],
+
+            /* GP - 21/03/2019 - managing jboss-web.xml file */
+            jbosswebxml: jBossWebXML,
+            jBoss_webxml_webapp_version: '7.0',
+            jBoss_webxml_webapp_xmlns: 'http://www.jboss.com/xml/ns/javaee',
+            jBoss_webxml_webapp_xmlns_xsi: 'http://www.w3.org/2001/XMLSchema-instance',
+            jBoss_webxml_webapp_xsi_schema_location: 'http://www.jboss.com/xml/ns/javaee http://www.jboss.org/j2ee/schema/jboss-web_7_0.xsd',
+            jBoss_webxml_virtual_host: '',
+            jBoss_webxml_context_root: ''
+            
         });
 
         options.war_dist_folder = normalize(options.war_dist_folder);
@@ -97,6 +107,13 @@ module.exports = function (grunt) {
             );
         }
 
+        /* GP - 21/03/2019 - managing jboss-web.xml file */
+        if (!containsJBossWebXML(this.files)) {
+            war(archive, options, 
+                {filename: 'WEB-INF/jboss-web.xml', data: options.jbosswebxml}
+            );
+        }
+        
         if (!containsMetaINF(this.files)) {
             war(archive, options, 
                 {filename: 'META-INF'}
@@ -147,6 +164,25 @@ module.exports = function (grunt) {
         return xml;
     };
 
+    /* GP - 21/03/2019 - managing jboss-web.xml file */
+    var jBossWebXML = function (opts) {
+        var xml;
+
+        xml = '<jboss-web';
+        xml += ' version="' + opts.jBoss_webxml_webapp_version + '"';
+        xml += ' xmlns="' + opts.jBoss_webxml_webapp_xmlns + '"';
+        xml += ' xmlns:xsi="' + opts.jBoss_webxml_webapp_xmlns_xsi + '"';
+        xml += ' xsi:schemaLocation="' + opts.jBoss_webxml_webapp_xsi_schema_location + '"';
+        xml += '>\n';
+
+        xml += '<virtual-host>' + opts.jBoss_webxml_virtual_host + '</virtual-host>\n';
+        xml += '<context-root>' + opts.jBoss_webxml_context_root + '</context-root>\n';
+
+        xml += '</jboss-web>\n';
+
+        return xml;
+    };
+    
     var war = function (target, opts, extras) {
         if (extras === undefined) {
             return;
@@ -214,6 +250,15 @@ module.exports = function (grunt) {
         );
     };
 
+    /* GP - 21/03/2019 - managing jboss-web.xml file */
+    var containsJBossWebXML = function (files) {
+        var testJBossWebXML = 'WEB-INF/jboss-web.xml';
+        return files.some(function (each) {
+                return !grunt.file.isDir(each.src[0]) && testJBossWebXML.localeCompare(each.dest) == 0;
+            }
+        );
+    };
+    
     var containsMetaINF = function (files) {
         return files.some(function (each) {
                 return (/^META-INF/).test(each.dest);
